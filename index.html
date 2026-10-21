@@ -1,0 +1,303 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoteSphere | Online Voting</title>
+
+    <style>
+        
+.candidate-photo {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    object-fit: cover;
+    object-position: center;
+    border: 3px solid #eee9ff;
+    box-shadow: 0 5px 15px rgba(118, 87, 255, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.candidate label:hover .candidate-photo {
+    transform: scale(1.08) rotate(-2deg);
+    box-shadow: 0 8px 20px rgba(118, 87, 255, 0.3);
+}
+
+.candidate input:checked + label .candidate-photo {
+    border-color: #7657ff;
+    box-shadow: 0 0 0 4px #7657ff22;
+}
+
+@media (max-width: 600px) {
+    .candidate-photo {
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+    }
+}
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #e0e7ff, #fdf2f8);
+            color: #202447;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 25px 15px;
+            text-align: center;
+            color: white;
+            background: linear-gradient(120deg, #4338ca, #9333ea);
+        }
+
+        header h1 { margin: 0 0 8px; }
+        header p { margin: 0; }
+
+        main {
+            max-width: 850px;
+            margin: 28px auto;
+            padding: 0 16px;
+        }
+
+        .panel {
+            background: white;
+            padding: 24px;
+            margin-bottom: 20px;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px #20244712;
+        }
+
+        h2 { margin-top: 0; }
+
+        label {
+            display: block;
+            margin: 14px 0 7px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .candidate {
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .candidate input {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            margin: 8px 6px 0 0;
+            transition: transform .2s ease;
+        }
+
+        button:hover { transform: translateY(-2px); }
+
+        .primary {
+            background: #4f46e5;
+            color: white;
+            width: 100%;
+            margin-top: 18px;
+        }
+
+        .share {
+            background: #059669;
+            color: white;
+        }
+
+        .restart {
+            background: #e11d48;
+            color: white;
+        }
+
+        .message {
+            padding: 13px;
+            border-radius: 10px;
+            background: #eef2ff;
+            margin-bottom: 18px;
+        }
+
+        .result { margin: 18px 0; }
+
+        .result-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 7px;
+        }
+
+        .bar {
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #c026d3);
+            border-radius: 20px;
+            transition: width .5s ease;
+        }
+
+        .total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+
+        .note {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #6b7280;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+
+        @media (max-width: 500px) {
+            .panel { padding: 18px; }
+            header h1 { font-size: 25px; }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <h1>🗳️ Voter</h1>
+    <p>Your voice, your vote!</p>
+</header>
+
+<main>
+    <section class="panel">
+        <h2>Cast Your Vote</h2>
+
+        {% if message %}
+            <div class="message">{{ message }}</div>
+        {% endif %}
+
+        <form action="/vote" method="POST">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name"
+                   placeholder="Enter your full name"
+                   maxlength="100" required>
+
+            <label for="dob">Date of Birth</label>
+            <input type="date" id="dob" name="dob" required>
+
+            <label>Select Your Candidate</label>
+
+            {% for candidate in candidates %}
+            <label class="candidate">
+                <input type="radio" name="candidate"
+                       value="{{ candidate }}" required>
+                {{ candidate }}
+            </label>
+            {% endfor %}
+
+            <button type="submit" class="primary">
+                Submit My Vote
+            </button>
+        </form>
+
+        <p class="note">
+            Presented BY CRN COMPANY.
+        </p>
+    </section>
+
+    <section class="panel">
+        <h2>📊 Live Results</h2>
+        <p class="total">Total Votes: {{ total_votes }}</p>
+
+        {% for candidate in candidates %}
+            {% set count = votes[candidate] %}
+            {% set percentage = (count * 100 / total_votes) if total_votes else 0 %}
+
+            <div class="result">
+                <div class="result-top">
+                    <strong>{{ candidate }}</strong>
+                    <span>{{ count }} votes · {{ "%.1f"|format(percentage) }}%</span>
+                </div>
+                <div class="bar">
+                    <div class="fill" style="width: {{ percentage }}%"></div>
+                </div>
+            </div>
+        {% endfor %}
+    </section>
+
+    <section class="panel">
+        <h2>🔗 Share This Website</h2>
+        <p>Share the voting page with others.</p>
+        <button type="button" class="share" onclick="shareWebsite()">
+            Share Voting Link
+        </button>
+        <p class="note" id="shareMessage"></p>
+    </section>
+
+    <section class="panel">
+        <h2>⚙️ Voting Controls</h2>
+        <p class="note">
+            Restarting resets all vote counts and clears the demo's
+            repeat-voter records.
+        </p>
+        <form action="/restart" method="POST"
+              onsubmit="return confirm('Reset all votes and voter records?');">
+            <button type="submit" class="restart">
+                🔄 Restart Voting
+            </button>
+        </form>
+    </section>
+</main>
+
+<footer>VoteSphere · Educational Demo</footer>
+
+<script>
+async function shareWebsite() {
+    const link = window.location.href.split("?")[0];
+    const message = document.getElementById("shareMessage");
+
+    try {
+        if (navigator.share) {
+            await navigator.share({
+                title: "VoteSphere Voting",
+                text: "Please visit the voting website:",
+                url: link
+            });
+        } else if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(link);
+            message.textContent = "Voting link copied! You can now share it.";
+        } else {
+            window.prompt("Copy and share this link:", link);
+        }
+    } catch (error) {
+        if (error.name !== "AbortError") {
+            message.textContent = "Please copy this website link from your browser address bar.";
+        }
+    }
+}
+</script>
+</body>
+</html>
